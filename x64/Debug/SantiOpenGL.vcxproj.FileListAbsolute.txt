@@ -1,1 +1,2 @@
 C:\Users\PERSONAL\Documents\Proyectyos\SantiOpenGL\x64\Debug\SantiOpenGL.exe
+C:\Users\PERSONAL\Documents\triangulo\x64\Debug\SantiOpenGL.exe
