@@ -1,53 +1,66 @@
-#include <iostream>      // Permite imprimir mensajes en consola
-#include <cmath>         // Permite usar sqrt()
-#include <glad/glad.h>   // Carga funciones modernas de OpenGL
-#include <GLFW/glfw3.h>  // Manejo de ventanas y contexto OpenGL
-
+#include <iostream>
+#include <cmath>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 // ============================
 // VERTEX SHADER
 // ============================
 const char* vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"      // Recibe posición del vértice (x,y,z)
+"layout (location = 0) in vec3 aPos;\n"
 "void main()\n"
 "{\n"
-"   gl_Position = vec4(aPos, 1.0);\n"        // Convierte vec3 en vec4 para OpenGL
+"   gl_Position = vec4(aPos, 1.0);\n"
 "}\0";
 
 
 // ============================
-// FRAGMENT SHADER (Solo líneas)
+// FRAGMENT SHADER
 // ============================
 const char* fragmentShaderSource = "#version 330 core\n"
-"out vec4 FragColor;\n"                      // Color final del pixel
+"out vec4 FragColor;\n"
+"uniform int mode;\n"
+"\n"
 "void main()\n"
 "{\n"
-"   float spacing = 15.0;\n"                 // Distancia entre líneas\n"
+"   float spacing = 15.0;\n"
 "\n"
-"   // Creamos patrón diagonal con coordenadas del pixel\n"
-"   if (mod(gl_FragCoord.x + gl_FragCoord.y, spacing) < 1.0)\n"
-"       FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"  // Línea blanca\n"
-"   else\n"
-"       discard;\n"                          // Elimina el pixel (no se dibuja)\n"
+"   // 0 = Triangulo naranja\n"
+"   if(mode == 0)\n"
+"   {\n"
+"       FragColor = vec4(1.0, 0.5, 0.0, 1.0);\n"
+"   }\n"
+"\n"
+"   // 1 = Lineas diagonales\n"
+"   else if(mode == 1)\n"
+"   {\n"
+"       if (mod(gl_FragCoord.x + gl_FragCoord.y, spacing) < 1.0)\n"
+"           FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
+"       else\n"
+"           discard;\n"
+"   }\n"
+"\n"
+"   // 2 = Puntos\n"
+"   else if(mode == 2)\n"
+"   {\n"
+"       if(mod(gl_FragCoord.x, spacing) < 2.0 && mod(gl_FragCoord.y, spacing) < 2.0)\n"
+"           FragColor = vec4(1.0,1.0,1.0,1.0);\n"
+"       else\n"
+"           discard;\n"
+"   }\n"
 "}\n\0";
 
 
 int main()
 {
-    // Inicializa GLFW (librería de ventana)
     glfwInit();
 
-    // Configuramos versión de OpenGL 3.3
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-
-    // Indicamos que usamos perfil moderno (core)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // Creamos una ventana de 800x800
-    GLFWwindow* window = glfwCreateWindow(800, 800, "Triangulo Solo Lineas", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(800, 800, "Triangulo Interactivo", NULL, NULL);
 
-    // Verificamos que la ventana se creó correctamente
     if (window == NULL)
     {
         std::cout << "Error al crear ventana\n";
@@ -55,109 +68,103 @@ int main()
         return -1;
     }
 
-    // Activamos el contexto OpenGL
     glfwMakeContextCurrent(window);
 
-    // Cargamos funciones de OpenGL con GLAD
     if (!gladLoadGL())
     {
         std::cout << "Error al cargar GLAD\n";
         return -1;
     }
 
-    // Definimos el área visible de dibujo
     glViewport(0, 0, 800, 800);
 
-
     // ============================
-    // Definimos vértices del triángulo equilátero
+    // Vertices del triangulo equilatero
     // ============================
     GLfloat vertices[] =
     {
-        -0.5f, -0.5f * sqrt(3) / 3, 0.0f,   // Vértice inferior izquierdo
-         0.5f, -0.5f * sqrt(3) / 3, 0.0f,   // Vértice inferior derecho
-         0.0f,  0.5f * sqrt(3) * 2 / 3, 0.0f// Vértice superior
+        -0.5f, -0.5f * sqrt(3) / 3, 0.0f,
+         0.5f, -0.5f * sqrt(3) / 3, 0.0f,
+         0.0f,  0.5f * sqrt(3) * 2 / 3, 0.0f
     };
 
+    // ============================
+    // Vertex Shader
+    // ============================
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
 
     // ============================
-    // Crear y compilar Vertex Shader
-    // ============================
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);   // Creamos shader
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL); // Enviamos código
-    glCompileShader(vertexShader); // Compilamos
-
-
-    // ============================
-    // Crear y compilar Fragment Shader
+    // Fragment Shader
     // ============================
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
 
-
     // ============================
-    // Crear programa y enlazar shaders
+    // Shader Program
     // ============================
-    GLuint shaderProgram = glCreateProgram();   // Creamos programa
-    glAttachShader(shaderProgram, vertexShader); // Adjuntamos vertex
-    glAttachShader(shaderProgram, fragmentShader); // Adjuntamos fragment
-    glLinkProgram(shaderProgram); // Enlazamos
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
 
-    // Eliminamos shaders individuales (ya están dentro del programa)
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-
     // ============================
-    // Crear VAO y VBO
+    // VAO y VBO
     // ============================
     GLuint VAO, VBO;
 
-    glGenVertexArrays(1, &VAO); // Genera VAO
-    glGenBuffers(1, &VBO);      // Genera VBO
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
 
-    glBindVertexArray(VAO);     // Activamos VAO
+    glBindVertexArray(VAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO); // Activamos VBO
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // Enviamos datos
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // Configuramos atributo posición
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // Desactivamos para seguridad
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    // ============================
+    // Variable de modo
+    // ============================
+    int mode = 0;
 
     // ============================
-    // Bucle principal
+    // Loop principal
     // ============================
     while (!glfwWindowShouldClose(window))
     {
-        // Fondo oscuro
-        glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+        // Detectar teclas
+        if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+            mode = 1;
 
-        // Limpiamos pantalla
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+            mode = 2;
+
+        // Fondo
+        glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Activamos programa shader
         glUseProgram(shaderProgram);
 
-        // Activamos VAO
+        // Enviar modo al shader
+        glUniform1i(glGetUniformLocation(shaderProgram, "mode"), mode);
+
         glBindVertexArray(VAO);
 
-        // Dibujamos triángulo
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
-        // Intercambiamos buffers
         glfwSwapBuffers(window);
-
-        // Procesamos eventos
         glfwPollEvents();
     }
-
 
     // ============================
     // Liberar memoria
